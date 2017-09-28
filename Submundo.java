@@ -69,7 +69,6 @@ public class Submundo implements Runnable {
         }
 
         Celula actual = mundo.getMundo()[i][j];
-//        actual.verificarSiNecesitaCambiar(cantVivas);
         if (!actual.getEstado()) { //Compruebo el estado de vida de la celula, y segun ello y la cantidad de vecinas vivas procedo a comprobar si necesito cambiar su estado o no
             //Si esta muerta...
             if (cantVivas == 3) {

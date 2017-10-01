@@ -14,8 +14,7 @@ import java.util.logging.Logger;
 Alumno: Emiliano Rios Gavagnin
 Legajo: FAI-1113
 Trabajo: Juego de la vida
-*/
-
+ */
 /**
  *
  * @author Emi
@@ -24,7 +23,7 @@ public class Submundo implements Runnable {
 
     private final CyclicBarrier esperarVerificacion;
     private final CyclicBarrier esperarCambio;
-    private final Mundo mundo;
+    private final Celula[][] mundo;
 
     //Variables utilizadas para determinar los limites de cada submundo
     private final int inicioFila;
@@ -32,7 +31,7 @@ public class Submundo implements Runnable {
     private final int finFila;
     private final int finCol;
 
-    public Submundo(Mundo mundo, int inicioFila, int finFila, int inicioCol, int finCol, CyclicBarrier esperarVerificacion, CyclicBarrier esperarCambio) {
+    public Submundo(Celula[][] mundo, int inicioFila, int finFila, int inicioCol, int finCol, CyclicBarrier esperarVerificacion, CyclicBarrier esperarCambio) {
         this.esperarVerificacion = esperarVerificacion;
         this.esperarCambio = esperarCambio;
         this.mundo = mundo;
@@ -50,15 +49,15 @@ public class Submundo implements Runnable {
         int cantVivas = 0; //Usada para contar la cantidad de celulas vecinas vivas
 
         for (int k = 0; k <= 8; k++) { //Itero sobre todas las vecinas de una celula[i][j] y compruebo el estado de las mismas para indicar si esta debe cambiar o no
-            int longitudFilas = mundo.getMundo().length - 1, longitudCol = mundo.getMundo()[0].length - 1;
+            int longitudFilas = mundo.length - 1, longitudCol = mundo[0].length - 1;
             int zero = 0;
             int fila = n + i; //Variable utilizada para indicar el indice de la fila de la celula vecina
             int col = m + j;//Variable utilizada para indicar el indice de la columna de la celula vecina
 
             if (n != 0 || m != 0) { //Si la celula[fila][col] != celula[i][j] (No me interesa saber el estado de la celula actual, por ahora...)
-                fila = (fila <= -1) ? longitudFilas : ((fila >= mundo.getMundo().length) ? 0 : fila); //Si la variable fila es una posicion invalida, entonces le asigno el valor correspondiente a su otro extremo (Es decir, actua de forma de esfera)
-                col = (col <= -1) ? longitudCol : ((col >= mundo.getMundo()[0].length) ? 0 : col); //Si la variable columna es una posicion invalida, entonces le asigno el valor correspondiente a su otro extremo (Es decir, actua de forma de esfera)
-                if (mundo.getMundo()[fila][col].getEstado()) { //Si la celula vecina esta viva la sumo a un contador
+                fila = (fila <= -1) ? longitudFilas : ((fila >= mundo.length) ? 0 : fila); //Si la variable fila es una posicion invalida, entonces le asigno el valor correspondiente a su otro extremo (Es decir, actua de forma de esfera)
+                col = (col <= -1) ? longitudCol : ((col >= mundo[0].length) ? 0 : col); //Si la variable columna es una posicion invalida, entonces le asigno el valor correspondiente a su otro extremo (Es decir, actua de forma de esfera)
+                if (mundo[fila][col].getEstado()) { //Si la celula vecina esta viva la sumo a un contador
                     cantVivas++;
                 }
             }
@@ -68,9 +67,8 @@ public class Submundo implements Runnable {
 
         }
 
-        Celula actual = mundo.getMundo()[i][j];
+        Celula actual = mundo[i][j];
         actual.verificarSiNecesitaCambiar(cantVivas);
-
 
     }
 
@@ -89,7 +87,7 @@ public class Submundo implements Runnable {
         //Se podria hacer synchronized, pero como cada submundo solo cambia las celulas de su submundo, no hay riesgo que otro submundo cambie otra celula que no sea de su espacio
         for (int i = inicioFila; i <= finFila; i++) {
             for (int j = inicioCol; j <= finCol; j++) {
-                Celula temp = mundo.getMundo()[i][j];
+                Celula temp = mundo[i][j];
                 if (temp.getCambiar()) { //Si necesita cambiar...
                     temp.setEstado(!temp.getEstado());
                     temp.setCambiar(false);

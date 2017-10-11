@@ -27,7 +27,13 @@ import javafx.util.Duration;
  * @author Emi
  */
 public class MundoNuevo extends Application {
+
+    //Variables utilizadas por IU
+    Timeline animacion;
+
     //Variables utilizadas para la inicializacion del mundo
+    CyclicBarrier esperarCambio;
+    CyclicBarrier esperarVerificacion;
     static final int FILAS = 10;
     static final int COLUMNAS = 10;
     static final int THRESHOLD = 15;
@@ -37,44 +43,7 @@ public class MundoNuevo extends Application {
     static final int CANTIDADTHREADS = CANTIDADTHREADSAUX < THRESHOLD ? CANTIDADTHREADSAUX : (FILAS < COLUMNAS ? FILAS : COLUMNAS);
 
     public static void main(String[] args) {
-        Celula[][] mundo = new Celula[FILAS][COLUMNAS];
-        inicializarMundo(mundo, 10);
-        System.out.println(imprimir(mundo));
 
-        CyclicBarrier esperarCambio = new CyclicBarrier(CANTIDADTHREADS + 1);
-        CyclicBarrier esperarVerificacion = new CyclicBarrier(CANTIDADTHREADS + 1);
-
-        if (CANTIDADTHREADS == CANTIDADTHREADSAUX) {
-            iniciarThreads(mundo, esperarVerificacion, esperarCambio);
-        } else {
-            iniciarThreadsAlternativa(mundo, esperarVerificacion, esperarCambio);
-        }
-
-        while (true) {
-
-            try {
-                //System.out.println("Mundo esperando");
-                esperarVerificacion.await(); //Espero que todos los Threads terminen con la verificacion del mundo. Esta barrera sin embargo no es absolutamente necesaria
-            } catch (InterruptedException | BrokenBarrierException e) {
-            } finally {
-                if (esperarVerificacion.isBroken()) {
-                    esperarVerificacion.reset();
-                }
-
-                try {
-                    esperarCambio.await();//Espero que todos los Threads cambian su submundo
-                    Thread.sleep(1500); //Duermo para dar tiempo al usuario de ver el estado del mundo
-                    System.out.println(imprimir(mundo)); //Muestro por pantalla el estado del mundo
-
-                } catch (InterruptedException | BrokenBarrierException e) {
-                } finally {
-                    if (esperarCambio.isBroken()) {
-                        esperarCambio.reset();
-                    }
-                }
-            }
-
-        }
     }
 
     public static void inicializarMundo(Celula[][] mundo, int cantCelulasIniciales) {
@@ -185,20 +154,38 @@ public class MundoNuevo extends Application {
     @Override
     public void start(Stage stage) throws Exception {
 
-        Parent root = FXMLLoader.load(getClass().getResource("IU.fxml"));
+        Parent root = FXMLLoader.load(getClass().getResource("FXML.fxml"));
 
         Scene scene = new Scene(root);
-        scene.getStylesheets().add(MundoNuevo.class.getResource("iu.css").toExternalForm());
+        scene.getStylesheets().add(MundoNuevo.class.getResource("Estilo.css").toExternalForm());
         stage.setScene(scene);
         stage.show();
 
+        Celula[][] mundo = new Celula[FILAS][COLUMNAS];
+        inicializarMundo(mundo, 10);
+        System.out.println(imprimir(mundo));
+        if (CANTIDADTHREADS == CANTIDADTHREADSAUX) {
+            iniciarThreads(mundo, esperarVerificacion, esperarCambio);
+        } else {
+            iniciarThreadsAlternativa(mundo, esperarVerificacion, esperarCambio);
+        }
+        esperarCambio = new CyclicBarrier(CANTIDADTHREADS + 1);
+        esperarVerificacion = new CyclicBarrier(CANTIDADTHREADS + 1);
+        
         animacion = new Timeline(new KeyFrame(Duration.millis(70), new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                calculator.createPattern();
-                calculator.increaseGeneration(1);
-                updateGeneration();
-                updatePopulation();
+                try {
+                    esperarCambio.await();//Espero que todos los Threads cambian su submundo
+                    Thread.sleep(1500); //Duermo para dar tiempo al usuario de ver el estado del mundo
+                    System.out.println(imprimir(mundo)); //Muestro por pantalla el estado del mundo
+
+                } catch (InterruptedException | BrokenBarrierException e) {
+                } finally {
+                    if (esperarCambio.isBroken()) {
+                        esperarCambio.reset();
+                    }
+                }
             }
         }));
 

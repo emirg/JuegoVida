@@ -11,22 +11,32 @@ package JuegoVida;
 import java.util.Random;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.application.Application;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+import javafx.util.Duration;
 
 /**
  *
  * @author Emi
  */
-public class MundoNuevo {
+public class MundoNuevo extends Application {
     //Variables utilizadas para la inicializacion del mundo
+    static final int FILAS = 10;
+    static final int COLUMNAS = 10;
+    static final int THRESHOLD = 15;
+    static final int CANTIDADTHREADSAUX = (FILAS / 3 + FILAS % 3) * (COLUMNAS / 3 + COLUMNAS % 3); //Calculo cuantos threads necesitaria para utilizar threads con submundos de 3x3
 
-    static final int FILAS = 6;
-    static final int COLUMNAS = 6;
-
-    //La cantidad de Threads sera igual a la cantdad de matriz cuadradas de 3x3 mas las matrices cuyas cantidades de columnas y filas son las restantes para completar la matriz
-    static final int CANTIDADTHREADS = (FILAS / 3 + FILAS % 3) * (COLUMNAS / 3 + COLUMNAS % 3);
+    //Si la cantidad de threads calculada en CANTIDADTHREADSAUX supera el limite establecido, utilizo una division alternativa donde cada fila o columna es un thread
+    static final int CANTIDADTHREADS = CANTIDADTHREADSAUX < THRESHOLD ? CANTIDADTHREADSAUX : (FILAS < COLUMNAS ? FILAS : COLUMNAS);
 
     public static void main(String[] args) {
-
         Celula[][] mundo = new Celula[FILAS][COLUMNAS];
         inicializarMundo(mundo, 10);
         System.out.println(imprimir(mundo));
@@ -34,9 +44,14 @@ public class MundoNuevo {
         CyclicBarrier esperarCambio = new CyclicBarrier(CANTIDADTHREADS + 1);
         CyclicBarrier esperarVerificacion = new CyclicBarrier(CANTIDADTHREADS + 1);
 
-        iniciarThreads(mundo, esperarVerificacion, esperarCambio);
+        if (CANTIDADTHREADS == CANTIDADTHREADSAUX) {
+            iniciarThreads(mundo, esperarVerificacion, esperarCambio);
+        } else {
+            iniciarThreadsAlternativa(mundo, esperarVerificacion, esperarCambio);
+        }
 
         while (true) {
+
             try {
                 //System.out.println("Mundo esperando");
                 esperarVerificacion.await(); //Espero que todos los Threads terminen con la verificacion del mundo. Esta barrera sin embargo no es absolutamente necesaria
@@ -82,9 +97,9 @@ public class MundoNuevo {
         String resultado = "--------------------------------------------------------------------" + "\n";
         try {
 
-            for (int i = 0; i < 6; i++) {
+            for (int i = 0; i < mundo.length; i++) {
 
-                for (int j = 0; j < 6; j++) {
+                for (int j = 0; j < mundo[0].length; j++) {
 
                     if (mundo[i][j].getEstado()) {
                         resultado = resultado + ((char) 2550 + " "); //Viva
@@ -150,5 +165,42 @@ public class MundoNuevo {
                 }
             }
         }
+    }
+
+    public static void iniciarThreadsAlternativa(Celula[][] m, CyclicBarrier esperarVerificacion, CyclicBarrier esperarCambio) {
+        if (FILAS < COLUMNAS) {
+            for (int i = 0; i < m.length; i++) {
+                new Thread(new Submundo(m, i, i, 0, COLUMNAS - 1, esperarVerificacion, esperarCambio)).start();
+
+            }
+        } else {
+            for (int i = 0; i < m[0].length; i++) {
+                new Thread(new Submundo(m, 0, FILAS - 1, i, i, esperarVerificacion, esperarCambio)).start();
+
+            }
+        }
+
+    }
+
+    @Override
+    public void start(Stage stage) throws Exception {
+
+        Parent root = FXMLLoader.load(getClass().getResource("IU.fxml"));
+
+        Scene scene = new Scene(root);
+        scene.getStylesheets().add(MundoNuevo.class.getResource("iu.css").toExternalForm());
+        stage.setScene(scene);
+        stage.show();
+
+        animacion = new Timeline(new KeyFrame(Duration.millis(70), new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                calculator.createPattern();
+                calculator.increaseGeneration(1);
+                updateGeneration();
+                updatePopulation();
+            }
+        }));
+
     }
 }

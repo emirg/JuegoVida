@@ -17,8 +17,15 @@ import javafx.application.Application;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Label;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.GridPane;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -26,24 +33,27 @@ import javafx.util.Duration;
  *
  * @author Emi
  */
-public class MundoNuevo extends Application {
+public class MundoNuevo extends Application { //MODEL
 
     //Variables utilizadas por IU
-    Timeline animacion;
-
-    //Variables utilizadas para la inicializacion del mundo
-    CyclicBarrier esperarCambio;
-    CyclicBarrier esperarVerificacion;
-    static final int FILAS = 10;
-    static final int COLUMNAS = 10;
-    static final int THRESHOLD = 15;
-    static final int CANTIDADTHREADSAUX = (FILAS / 3 + FILAS % 3) * (COLUMNAS / 3 + COLUMNAS % 3); //Calculo cuantos threads necesitaria para utilizar threads con submundos de 3x3
+    private static Timeline animacion;
+    private static GridPane gridPaneMatrix;
+    private Rectangle2D primaryScreenBounds;
+    private String colorLife, colorDeath;
+    //Variables utilizadas para la inicializacion del mundo / Variables logicas
+    private CyclicBarrier esperarCambio;
+    private CyclicBarrier esperarVerificacion;
+    private Celula[][] mundo;
+    private static final int FILAS = 10;
+    private static final int COLUMNAS = 10;
+    private static final int THRESHOLD = 15;
+    private static final int CANTIDADTHREADSAUX = (FILAS / 3 + FILAS % 3) * (COLUMNAS / 3 + COLUMNAS % 3); //Calculo cuantos threads necesitaria para utilizar threads con submundos de 3x3
 
     //Si la cantidad de threads calculada en CANTIDADTHREADSAUX supera el limite establecido, utilizo una division alternativa donde cada fila o columna es un thread
-    static final int CANTIDADTHREADS = CANTIDADTHREADSAUX < THRESHOLD ? CANTIDADTHREADSAUX : (FILAS < COLUMNAS ? FILAS : COLUMNAS);
+    private static final int CANTIDADTHREADS = CANTIDADTHREADSAUX < THRESHOLD ? CANTIDADTHREADSAUX : (FILAS < COLUMNAS ? FILAS : COLUMNAS);
 
     public static void main(String[] args) {
-
+        launch(args);
     }
 
     public static void inicializarMundo(Celula[][] mundo, int cantCelulasIniciales) {
@@ -151,6 +161,14 @@ public class MundoNuevo extends Application {
 
     }
 
+    public static void comenzarJuego() {
+        animacion.play();
+    }
+
+    public static void pausarJuego() {
+        animacion.pause();
+    }
+
     @Override
     public void start(Stage stage) throws Exception {
 
@@ -161,17 +179,32 @@ public class MundoNuevo extends Application {
         stage.setScene(scene);
         stage.show();
 
-        Celula[][] mundo = new Celula[FILAS][COLUMNAS];
+        //LOGICA
+        mundo = new Celula[FILAS][COLUMNAS];
         inicializarMundo(mundo, 10);
-        System.out.println(imprimir(mundo));
+        //System.out.println(imprimir(mundo));
+        
+        esperarCambio = new CyclicBarrier(CANTIDADTHREADS + 1);
+        esperarVerificacion = new CyclicBarrier(CANTIDADTHREADS + 1);
+        
         if (CANTIDADTHREADS == CANTIDADTHREADSAUX) {
             iniciarThreads(mundo, esperarVerificacion, esperarCambio);
         } else {
             iniciarThreadsAlternativa(mundo, esperarVerificacion, esperarCambio);
         }
-        esperarCambio = new CyclicBarrier(CANTIDADTHREADS + 1);
-        esperarVerificacion = new CyclicBarrier(CANTIDADTHREADS + 1);
+
         
+        //VISUAL
+        colorLife = "#39E600";
+        colorDeath = "#1A1A00";
+
+        primaryScreenBounds = Screen.getPrimary().getVisualBounds();
+
+        gridPaneMatrix = new GridPane();
+        gridPaneMatrix.setPrefSize(primaryScreenBounds.getWidth() * 0.60, primaryScreenBounds.getHeight() * 0.75);
+        gridPaneMatrix.setPadding(new Insets(5, 20, 5, 20));
+        gridPaneMatrix.setAlignment(Pos.CENTER);
+
         animacion = new Timeline(new KeyFrame(Duration.millis(70), new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
@@ -189,5 +222,24 @@ public class MundoNuevo extends Application {
             }
         }));
 
+        animacion.setCycleCount(Timeline.INDEFINITE);
+
     }
+    
+    private static void llenarGridPane(GridPane matrix){
+        
+        for (int i = 0; i < FILAS; i++) {
+            for (int j = 0; j < COLUMNAS; j++) {
+                matrix.add(matrix, COLUMNAS, i);
+            }
+        }
+        
+        
+        
+        
+        
+        
+        
+    }
+
 }

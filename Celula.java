@@ -5,6 +5,8 @@
  */
 package JuegoVida;
 
+import java.util.Observable;
+
 /*
 Alumno: Emiliano Rios Gavagnin
 Legajo: FAI-1113
@@ -14,22 +16,40 @@ Trabajo: Juego de la vida
  *
  * @author Emi
  */
-public class Celula {
+public class Celula extends Observable {
 
-    private boolean estado; //Booleano que indica si la celula esta viva o muerta; viva -> true, muerta -> false
+    private boolean viva; //Booleano que indica si la celula esta viva o muerta; viva -> true, muerta -> false
     private boolean cambiar; //Booleano que indica si la celula debe cambiar de estado durante el proceso de cambio del mundo
+    public int i;
+    public int j;
 
-    public Celula(boolean estado) {
-        this.estado = estado;
+    public Celula() {
+        this.viva = false;
         this.cambiar = false;
     }
 
-    public void setEstado(boolean estado) {
-        this.estado = estado;
+    public Celula(int i, int j) {
+        this.viva = false;
+        this.cambiar = false;
+        this.i = i;
+        this.j = j;
     }
 
-    public boolean getEstado() {
-        return estado;
+    public Celula(boolean estado) {
+
+        this.viva = estado;
+        this.cambiar = false;
+    }
+
+    public void setViva(boolean estado) {
+        this.viva = estado;
+        setChanged();
+        notifyObservers();
+
+    }
+
+    public boolean isViva() {
+        return viva;
     }
 
     public boolean getCambiar() {
@@ -41,7 +61,7 @@ public class Celula {
     }
 
     public void verificarSiNecesitaCambiar(int cantVivas) {
-        if (!this.getEstado()) { //Compruebo el estado de vida de la celula, y segun ello y la cantidad de vecinas vivas procedo a comprobar si necesito cambiar su estado o no
+        if (!this.isViva()) { //Compruebo el estado de vida de la celula, y segun ello y la cantidad de vecinas vivas procedo a comprobar si necesito cambiar su estado o no
             //Si esta muerta...
             if (cantVivas == 3) {
                 this.setCambiar(true);

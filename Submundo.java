@@ -57,7 +57,7 @@ public class Submundo implements Runnable {
             if (n != 0 || m != 0) { //Si la celula[fila][col] != celula[i][j] (No me interesa saber el estado de la celula actual, por ahora...)
                 fila = (fila <= -1) ? longitudFilas : ((fila >= mundo.length) ? 0 : fila); //Si la variable fila es una posicion invalida, entonces le asigno el valor correspondiente a su otro extremo (Es decir, actua de forma de esfera)
                 col = (col <= -1) ? longitudCol : ((col >= mundo[0].length) ? 0 : col); //Si la variable columna es una posicion invalida, entonces le asigno el valor correspondiente a su otro extremo (Es decir, actua de forma de esfera)
-                if (mundo[fila][col].getEstado()) { //Si la celula vecina esta viva la sumo a un contador
+                if (mundo[fila][col].isViva()) { //Si la celula vecina esta viva la sumo a un contador
                     cantVivas++;
                 }
             }
@@ -87,10 +87,12 @@ public class Submundo implements Runnable {
         //Se podria hacer synchronized, pero como cada submundo solo cambia las celulas de su submundo, no hay riesgo que otro submundo cambie otra celula que no sea de su espacio
         for (int i = inicioFila; i <= finFila; i++) {
             for (int j = inicioCol; j <= finCol; j++) {
-                Celula temp = mundo[i][j];
-                if (temp.getCambiar()) { //Si necesita cambiar...
-                    temp.setEstado(!temp.getEstado());
-                    temp.setCambiar(false);
+                // Celula temp = mundo[i][j];
+                //  boolean cambiarA = ! mundo[i][j].isViva() ;
+                if (mundo[i][j].getCambiar()) { //Si necesita cambiar...
+                    mundo[i][j].setCambiar(false);
+                    mundo[i][j].setViva(!mundo[i][j].isViva());
+
                 }
             }
         }

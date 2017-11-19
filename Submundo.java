@@ -50,7 +50,6 @@ public class Submundo implements Runnable {
 
         for (int k = 0; k <= 8; k++) { //Itero sobre todas las vecinas de una celula[i][j] y compruebo el estado de las mismas para indicar si esta debe cambiar o no
             int longitudFilas = mundo.length - 1, longitudCol = mundo[0].length - 1;
-            int zero = 0;
             int fila = n + i; //Variable utilizada para indicar el indice de la fila de la celula vecina
             int col = m + j;//Variable utilizada para indicar el indice de la columna de la celula vecina
 
@@ -92,6 +91,7 @@ public class Submundo implements Runnable {
                 if (mundo[i][j].getCambiar()) { //Si necesita cambiar...
                     mundo[i][j].setCambiar(false);
                     mundo[i][j].setViva(!mundo[i][j].isViva());
+                    
 
                 }
             }

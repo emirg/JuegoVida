@@ -42,7 +42,7 @@ public class Mundo {
         return cantVivas;
     }
 
-    public  void cambiarCantVivas(boolean estado) {
+    public synchronized void cambiarCantVivas(boolean estado) {
         cantVivas += (estado) ? 1 : -1;
     }
 

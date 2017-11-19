@@ -7,6 +7,7 @@ package JuegoVida;
 
 import java.util.Observable;
 
+
 /*
 Alumno: Emiliano Rios Gavagnin
 Legajo: FAI-1113
@@ -16,12 +17,11 @@ Trabajo: Juego de la vida
  *
  * @author Emi
  */
-public class Celula extends Observable {
+public class Celula extends Observable { //Celula logica que cambiara segun sus vecinas y es OBservable para 
 
     private boolean viva; //Booleano que indica si la celula esta viva o muerta; viva -> true, muerta -> false
     private boolean cambiar; //Booleano que indica si la celula debe cambiar de estado durante el proceso de cambio del mundo
-    public int i;
-    public int j;
+
 
     public Celula() {
         this.viva = false;
@@ -31,8 +31,7 @@ public class Celula extends Observable {
     public Celula(int i, int j) {
         this.viva = false;
         this.cambiar = false;
-        this.i = i;
-        this.j = j;
+
     }
 
     public Celula(boolean estado) {

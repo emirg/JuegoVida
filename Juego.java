@@ -37,28 +37,24 @@ import javafx.util.Duration;
 public class Juego extends Application {
 
     //Variables utilizadas por IU
-    private static Timeline animacion;
-    private static GridPane gridPaneMatriz;
-    private static RectanguloVisual[][] matrizVisual;
-    private static Rectangle2D limitesPantallaPrincipal;
-    private static Button botonEmpezar, botonPausar, botonStep;
-    private static String colorVida, colorMuerte;
-    private static int duracionFrame;
-    private static boolean empezo = false;
+    private static Timeline animacion; 
+    private static GridPane gridPaneMatriz; //GridPane que contendra los elementos RectanguloVisual
+    private static RectanguloVisual[][] matrizVisual; //Matriz de RectanguloVisual (seran Observers y son los encargados de cambiar cuando hay cambios en la matriz logica)
+    private static Rectangle2D limitesPantallaPrincipal; //Utilizado para no exceder los limites
+    private static Button botonEmpezar, botonPausar, botonStep; //Botones para empezar el juego, pausar y avanzar por generacion (1 sola actualizacion)
+    private static String colorVida, colorMuerte; //Colores predeterminados 
+    private static int duracionFrame; //Tiempo que se tarda en pasar de una generacion en otra
+    private static boolean empezo = false; //Variable utilizada para que el boton empezar no vuelva a crear threads una vez pausado el juego
 
     //Variables utilizadas para la inicializacion del mundo / Variables logicas
-    private CyclicBarrier esperarCambio;
-    private CyclicBarrier esperarVerificacion;
+    private CyclicBarrier esperarCambio; //Barrera que espera al cambio del mundo
+    private CyclicBarrier esperarVerificacion; //Barrera que espera la verificacion de cada submundo 
     //////////////////////////////////
     private static Mundo mundo;
     private static final int FILAS = 10;
     private static final int COLUMNAS = 10;
-    private static final int THRESHOLD = 10;
-    private static final int CANTIDADTHREADSAUX = (FILAS / 3 + FILAS % 3) * (COLUMNAS / 3 + COLUMNAS % 3); //Calculo cuantos threads necesitaria para utilizar threads con submundos de 3x3
-
-    //Si la cantidad de threads calculada en CANTIDADTHREADSAUX supera el limite establecido, utilizo una division alternativa donde cada fila o columna es un thread
-    private static final int CANTIDADTHREADS = CANTIDADTHREADSAUX < THRESHOLD ? CANTIDADTHREADSAUX : (FILAS < COLUMNAS ? FILAS : COLUMNAS);
-
+   private static final int CANTIDADTHREADS = FILAS; 
+   
     public static void main(String[] args) {
         Application.launch(args);
         System.exit(0);
@@ -71,10 +67,10 @@ public class Juego extends Application {
         colorMuerte = "#000000";
         ////////////////////////////////////LOGICA////////////////////////////////////
         mundo = new Mundo(FILAS, COLUMNAS);
-        mundo.inicializarMundo();
+        mundo.inicializarMundo(); //Inicializo el mundo (matriz) logico
 
         //System.out.println(imprimir(mundo));
-        esperarCambio = new CyclicBarrier(CANTIDADTHREADS + 1);
+        esperarCambio = new CyclicBarrier(CANTIDADTHREADS + 1); //Seteo la barrera con uno mas para incluir al thread principal en la espera
         esperarVerificacion = new CyclicBarrier(CANTIDADTHREADS);
 
         /////////////////////////////////////////////////////////////////////////////
@@ -92,21 +88,19 @@ public class Juego extends Application {
 
         gridPaneMatriz.setAlignment(Pos.CENTER);
 
-        crearMatrizVisual();
+        crearMatrizVisual(); //Creo la matriz visual (matriz de rectanguloVisuales), y la linkeo con el mundo logico y el gridPane
         root.setCenter(gridPaneMatriz);
         //////////////
 
         ////Animacion////
+        ///Creo la animacion que sera la encargada de controlar el progreso del mundo acorde a la duracion del frame
         animacion = new Timeline(new KeyFrame(Duration.millis(duracionFrame), (ActionEvent event) -> {
             try {
 
                 esperarCambio.await();//Espero que todos los Threads cambian su submundo
-                //System.out.println(imprimir(mundo)); //Muestro por pantalla el estado del mundo
-                //actualizarMundoVisual();
-                //Thread.sleep(1500); //Duermo para dar tiempo al usuario de ver el estado del mundo
-
-            } catch (InterruptedException | BrokenBarrierException e) {
-            } finally {
+    
+            } catch (InterruptedException | BrokenBarrierException e) {}
+            finally {
                 if (esperarCambio.isBroken()) {
                     esperarCambio.reset();
                 }
@@ -118,10 +112,10 @@ public class Juego extends Application {
         ////////////////
 
         ////Botones////
-        HBox barraSuperior = new HBox();
+        HBox barraSuperior = new HBox(); //Creo un HBox que contendra los botones principales en la parte superior de la ventana
 
         botonEmpezar = new Button();
-        botonEmpezar.setText("Empezar");
+        botonEmpezar.setText("Empezar"); //Boton encargado de empezar el juego y reanudarlo en caso de que este en pause
         botonEmpezar.setPrefSize(145, 40);
         botonEmpezar.setDisable(false);
         botonEmpezar.setOnAction(new EventHandler<ActionEvent>() {
@@ -129,17 +123,13 @@ public class Juego extends Application {
             public void handle(ActionEvent e) {
                 if (mundo.getCantVivas() > 0) {
                     animacion.play();
-                    System.out.println("EMPEZAR");
+                    //System.out.println("EMPEZAR");
                     ((Button) e.getSource()).setDisable(true);
                     botonPausar.setDisable(false);
                     botonStep.setDisable(true);
 
-                    if (!empezo) {
-                        if (CANTIDADTHREADS == CANTIDADTHREADSAUX) {
-                            iniciarThreads(mundo, esperarVerificacion, esperarCambio);
-                        } else {
-                            iniciarThreadsAlternativa(mundo, esperarVerificacion, esperarCambio);
-                        }
+                    if (!empezo) { //Verifico que haya empezado para saber si es necesario inicializar threads
+                    	iniciarThreads(mundo, esperarVerificacion, esperarCambio);
                         empezo = true;
                     }
 
@@ -150,14 +140,14 @@ public class Juego extends Application {
                     Alert alert = new Alert(Alert.AlertType.INFORMATION);
                     alert.setTitle("Error");
                     alert.setHeaderText(null);
-                    alert.setContentText("Matriz vacia!!!");
+                    alert.setContentText("Matriz vacia!!!"); //En caso de que se quiera empezar el juego sin celulas vivas, se da una advertencia
                     alert.showAndWait();
                 }
             }
         });
 
         botonPausar = new Button();
-        botonPausar.setText("Pausar");
+        botonPausar.setText("Pausar"); //Boton encargado de pausar la animacion y el progreso del juego. Inicialmente estara deshabilitado hasta que se empiece el juego
         botonPausar.setPrefSize(145, 40);
         botonPausar.setDisable(true);
         botonPausar.setOnAction(new EventHandler<ActionEvent>() {
@@ -166,51 +156,40 @@ public class Juego extends Application {
 
                 animacion.stop();
 
-                System.out.println("PAUSA");
                 ((Button) e.getSource()).setDisable(true);
                 botonEmpezar.setDisable(false);
                 botonStep.setDisable(false);
-                // buttonRestore.setDisable(true);
-                //buttonRedefine.setDisable(true);
-                //comboBox.setDisable(true);
+
 
             }
         });
 
         botonStep = new Button();
-        botonStep.setText("Step");
+        botonStep.setText("Step"); //Boton encargado de avanzar el juego en un solo paso, es decir, mostrar como queda el mundo despues de una sola actualizacion
         botonStep.setPrefSize(145, 40);
         botonStep.setDisable(false);
         botonStep.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent e) {
-//                System.out.println(animacion.getCurrentTime().toMillis());
-//                System.out.println(animacion.getStatus());
 
-                if (!empezo) {
-                    if (CANTIDADTHREADS == CANTIDADTHREADSAUX) {
-                        iniciarThreads(mundo, esperarVerificacion, esperarCambio);
-                    } else {
-                        iniciarThreadsAlternativa(mundo, esperarVerificacion, esperarCambio);
-                    }
+
+                if (!empezo) { //Inicialmente estara habilitado, por lo que presionar el boton "step" antes del "empezar" incializara los threads
+                	iniciarThreads(mundo, esperarVerificacion, esperarCambio);
                     empezo = true;
                 }
 
                 esperarCambio.reset();
 
-//                
-//                animacion.jumpTo(animacion.getCurrentTime().add(Duration.millis(duracionFrame)));
+
                 botonEmpezar.setDisable(false);
                 botonPausar.setDisable(true);
-                // buttonRestore.setDisable(true);
-                //buttonRedefine.setDisable(true);
-                //comboBox.)setDisable(true);
+
 
             }
         });
 
-        barraSuperior.getChildren().addAll(botonEmpezar, botonPausar, botonStep);
-        root.setTop(barraSuperior);
+        barraSuperior.getChildren().addAll(botonEmpezar, botonPausar, botonStep); //Agrego los botones al HBox superior
+        root.setTop(barraSuperior); //Agrego el HBox superior al root 
 
         ///////////////
         Scene scene = new Scene(root);
@@ -228,7 +207,8 @@ public class Juego extends Application {
 
         for (int i = 0; i < matrizVisual.length; i++) {
             for (int j = 0; j < matrizVisual[0].length; j++) {
-                matrizVisual[i][j] = new RectanguloVisual(i, j);
+            	//Inicializo el elemento RectanguloVisual correspondiente a la posicion [i,j] con todas sus caracteristicas
+                matrizVisual[i][j] = new RectanguloVisual();
                 matrizVisual[i][j].setAccessibleHelp(i + "," + j);
                 matrizVisual[i][j].setFill(Paint.valueOf(colorMuerte));
                 matrizVisual[i][j].setWidth(limitesPantallaPrincipal.getWidth() * 0.03);
@@ -252,7 +232,7 @@ public class Juego extends Application {
                     }
                 });
 
-                mundo.getMundo()[i][j].addObserver(matrizVisual[i][j]);
+                mundo.getMundo()[i][j].addObserver(matrizVisual[i][j]); //Agrego el objeto inicializado como un Observer de la celula logica en la posicion [i,j]
                 gridPaneMatriz.add(matrizVisual[i][j], j, i);
 
             }
@@ -294,57 +274,10 @@ public class Juego extends Application {
         return resultado;
     }
 
+   
+
+
     public static void iniciarThreads(Mundo mundo, CyclicBarrier esperarVerificacion, CyclicBarrier esperarCambio) {
-        /*Metodo encargado de inciar los threads dividiendo la matriz en submatrices cuadradas de 3x3.
-          Cuando no alcanzan las celdas para crear una matriz de 3x3, se utilizaran todas las restantes
-          sin importar el tamaño de la misma (Nunca sera una matriz de orden mayor a 3x3)*/
-        Celula[][] m = mundo.getMundo();
-        for (int i = 0; i < m.length; i = i + 3) { //Recorro los indices de filas y columnas para establecer cuales seran las divisiones de la matriz
-            for (int j = 0; j < m[0].length; j = j + 3) {
-                if (FILAS % 3 == 0) { //Verifico si la cantidad de filas es multiplo de 3
-                    if (COLUMNAS % 3 == 0) { //Verifico si la cantidad de columnas es multiplo de 3
-                        //Como se que la matriz es de orden cuadrado de nxm, donde n y m son multiplos de 3, divido la matriz sin precupaciones de que queden submatrices que no sean de 3x3
-                        new Thread(new Submundo(m, i, i + 2, j, j + 2, esperarVerificacion, esperarCambio)).start();
-                    } else {
-                        /*Si la cantidad de columnas no es multipl de 3, entonces debo verificar si la submatriz podra ser de orden 3x3
-                        En caso contrario se creara una submatriz con la cantidad de columnas restantes para abarcar toda la matriz */
-                        if (j + 3 > m.length - 1) {//Si las columnas necesarias para completar la submatriz no existen, se toma hasta la ultima columna disponible
-                            new Thread(new Submundo(m, i, i + 2, j, m[0].length - 1, esperarVerificacion, esperarCambio)).start();
-                        } else { //Si puede ser de orden 3x3 entonces divido normalmente
-                            new Thread(new Submundo(m, i, i + 2, j, j + 2, esperarVerificacion, esperarCambio)).start();
-                        }
-                    }
-                } else { //En el caso que la cantidad de filas no sea multiplo de 3 entonces tendre que verificar que la submatriz pueda ser de 3x3 y sino abarcar la submatriz con las filas restantes de la matriz principal
-                    if (COLUMNAS % 3 == 0) { //Si es multiplo de 3 en cuanto a columnas, no hace falta verificarlas, y procedo a verificar solo filas
-                        if (i + 3 > m.length - 1) { //Si las filas necesarias para completar la submatriz no existen, se toma hasta la ultima fila disponible
-                            new Thread(new Submundo(m, i, m.length - 1, j, j + 2, esperarVerificacion, esperarCambio)).start();
-                        } else {
-                            new Thread(new Submundo(m, i, i + 2, j, j + 2, esperarVerificacion, esperarCambio)).start();
-                        }
-                    } else {
-                        /*Si tanto las filas como columnas no son de una cantidad multiplo de 3 entonces debo verificar tanto en filas y columnas
-                        que la submatriz pueda ser de 3x3, en caso contrario se tomaran las celdas restantes de la matriz */
-                        if (i + 3 > m.length - 1) { //Si las filas necesarias para completar la submatriz no existen, se toma hasta la ultima fila disponible
-                            if (j + 3 > m.length - 1) {//Si las columnas necesarias para completar la submatriz no existen, se toma hasta la ultima columna disponible
-                                new Thread(new Submundo(m, i, m.length - 1, j, m[0].length - 1, esperarVerificacion, esperarCambio)).start();
-                            } else {
-                                new Thread(new Submundo(m, i, m.length - 1, j, j + 2, esperarVerificacion, esperarCambio)).start();
-                            }
-                        } else {
-                            if (j + 3 > m.length - 1) {//Si las columnas necesarias para completar la submatriz no existen, se toma hasta la ultima columna disponible
-                                new Thread(new Submundo(m, i, i + 2, j, m[0].length - 1, esperarVerificacion, esperarCambio)).start();
-                            } else {
-                                new Thread(new Submundo(m, i, i + 2, j, j + 2, esperarVerificacion, esperarCambio)).start();
-                            }
-                        }
-
-                    }
-                }
-            }
-        }
-    }
-
-    public static void iniciarThreadsAlternativa(Mundo mundo, CyclicBarrier esperarVerificacion, CyclicBarrier esperarCambio) {
         Celula[][] m = mundo.getMundo();
         if (FILAS < COLUMNAS) {
             for (int i = 0; i < m.length; i++) {
